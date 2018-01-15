@@ -17,7 +17,7 @@ class User extends Base{
 
         $lists = Db::name('user a')
             ->join('role b','a.roles=b.id','LEFT')
-            ->field('a.id,a.username,a.nickname,a.title,a.locked,a.mobile,a.roles,a.type,a.email,a.createdIp,a.createdTime,a.status,b.name')
+            ->field('a.id,a.username,a.nickname,a.title,a.mobile,a.locked,a.mobile,a.roles,a.type,a.email,a.createdIp,a.createdTime,a.status,b.name')
             ->order('id desc')->paginate(20);
 
 
@@ -63,6 +63,7 @@ class User extends Base{
         $data['nickname'] = $info['user_name'];
         $data['password'] = password_hash('123456',PASSWORD_DEFAULT);
         $data['email'] = $info['user_email'];
+        $data['mobile'] = $info['mobile'];
         $data['type'] = 3;
         $data['roles'] = isset($info['user_roles'])?$info['user_roles']:0;
         $data['locked'] = isset($info['user_locked'])?$info['user_locked']:0;
@@ -72,11 +73,12 @@ class User extends Base{
         $data['createdTime'] = date('Y-m-d H:i:s' ,time());
         $data['createUserID'] = session('admin_uid');
 
-        $ok = $user_table->field('nickname,username,password,email,roles,type,locked,status,title,createdIp,createdTime,createUserID')->insert($data);
+        $ok = $user_table->field('nickname,username,password,email,mobile,roles,type,locked,status,title,createdIp,createdTime,createUserID')->insert($data);
 
         if($ok){
 
             $sdata['userid'] = $user_table->getLastInsID();
+            $sdata['mobile'] = $info['mobile'];
             $sdata['createdTime'] = date('Y-m-d H:i:s' ,time());
             Db::table('user_profile')->insert($sdata);
 
@@ -125,13 +127,16 @@ class User extends Base{
         $data['nickname'] = $info['user_name'];
         $data['type'] = $info['user_type'];
         $data['email'] = $info['user_email'];
+        $data['mobile'] = $info['mobile'];
         $data['roles'] = isset($info['user_roles'])?$info['user_roles']:0;
         $data['status'] = isset($info['status'])?$info['status']:0;
         $data['locked'] = isset($info['user_locked'])?$info['user_locked']:0;
 
-        $ok = $user_table->field('nickname,email,roles,type,locked,status')->where('id',$id)->update($data);
+        $ok = $user_table->field('nickname,email,mobile,roles,type,locked,status')->where('id',$id)->update($data);
 
         if($ok){
+
+            Db::table('user_profile')->where('userid='.$id)->update(['mobile'=>$info['mobile']]);
             manage_log('101','004','修改用户',serialize($info),0);
             return ['info'=>'修改成功','code'=>'000'];
         }else{
